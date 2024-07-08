@@ -9,41 +9,48 @@ import {
     Modal,
     ModalContent, ModalHeader, ModalBody, ModalFooter
 } from "@nextui-org/react";
-import Editor from 'react-simple-wysiwyg';
-import '/node_modules/react-draft-wysiwyg/dist/react-draft-wysiwyg.css';
+import Editor, {ContentEditableEvent} from 'react-simple-wysiwyg';
 import React, {useEffect, useState} from "react";
 import {Link, useParams} from "react-router-dom";
-import ImageUploading from 'react-images-uploading';
+import ImageUploading, {ImageListType, ImageType} from 'react-images-uploading';
 import {CameraIcon} from "../components/icons/CameraIcon.tsx";
 import axios from "axios";
 
+interface ErrorsType {
+    name?: string;
+    price?: string;
+    images?: string;
+}
+
+type Selection = Set<string> | 'all';
+
 const EditProduct = () => {
     const [name, setName] = useState('');
-    const [price, setPrice] = useState<number>(0);
-    const [html, setHtml] = useState('Описание товара');
-    const [images, setImages] = React.useState([]);
-    const [selectedKey, setSelectedKey] = useState("Активный");
-    const [errors, setErrors] = useState({});
+    const [price, setPrice] = useState<string>('0');
+    const [description, setDescription] = useState('Описание товара');
+    const [images, setImages] = useState<ImageType[]>([]);
+    const [status, setStatus] = useState("Активный");
+    const [errors, setErrors] = useState<ErrorsType>({});
     const [isOpen, setOpen] = useState(false);
     const {id} = useParams();
 
-    const maxNumber = 69;
+    const maxNumber = 70;
 
     const onOpenChange = () => {
         setOpen(!isOpen);
     }
 
-    const onChange = (e) => {
-        setHtml(e.target.value);
+    const onChange = (e: ContentEditableEvent) => {
+        setDescription(e.target.value);
     }
 
     useEffect(() => {
         axios.get(`http://localhost:3000/products/${id}`).then((res) => {
             setName(res.data.name);
             setPrice(res.data.price);
-            setHtml(res.data.description);
-            setSelectedKey(res.data.status);
-            setImages(res.data.images.map((image) => {
+            setDescription(res.data.description);
+            setStatus(res.data.status);
+            setImages(res.data.images.map((image: ImageType) => {
                 return {
                     data_url: image.data_url,
                     file: image.file
@@ -54,7 +61,7 @@ const EditProduct = () => {
     }, []);
 
     const validateForm = () => {
-        const newErrors = {};
+        const newErrors: ErrorsType = {};
 
         if (!name.trim()) {
             setOpen(true);
@@ -76,7 +83,7 @@ const EditProduct = () => {
         return Object.keys(newErrors).length === 0;
     };
 
-    const createNewProductHandler = (e) => {
+    const createNewProductHandler = (e: React.MouseEvent<HTMLButtonElement>) => {
         e.preventDefault();
 
         if (!validateForm()) {
@@ -88,15 +95,21 @@ const EditProduct = () => {
 
         data.append('name', name);
         data.append('price', price);
-        data.append('description', html);
-        data.append('status', selectedKey);
+        data.append('description', description);
+        data.append('status', status);
         images.forEach(image => {
-            data.append('images', image.file); // Используем файл, а не data_url
+            if (image.file) {
+                data.append('images', image.file);
+            }
         });
-
         axios.put(`http://localhost:3000/products/${id}`, data)
             .then((res) => {
-                window.location.href = '/products';
+                if (res.status === 200 || res.status === 201) {
+                    window.location.href = '/products';
+                    return;
+                }
+
+                alert('Произошла ошибка')
             })
             .catch((error) => {
                 console.error('Error:', error);
@@ -104,9 +117,7 @@ const EditProduct = () => {
     };
 
 
-    const onChangeImage = (imageList: [], addUpdateIndex: number) => {
-        // data for submit
-        console.log(imageList, addUpdateIndex);
+    const onChangeImage = (imageList: ImageListType) => {
         setImages(imageList);
     };
 
@@ -120,7 +131,7 @@ const EditProduct = () => {
                        onChange={(e) => setName(e.target.value)}
                 />
                 <label className="create-product__label">Описание</label>
-                <Editor value={html} onChange={onChange}/>
+                <Editor value={description} onChange={onChange}/>
                 <label className="create-product__label">Статус</label>
                 <Dropdown classNames={{
                     base: "create-product__dropdown"
@@ -130,7 +141,7 @@ const EditProduct = () => {
                             variant="bordered"
                             className="capitalize"
                         >
-                            {selectedKey}
+                            {status}
                         </Button>
                     </DropdownTrigger>
                     <DropdownMenu
@@ -138,8 +149,8 @@ const EditProduct = () => {
                         variant="flat"
                         disallowEmptySelection
                         selectionMode="single"
-                        selectedKeys={selectedKey}
-                        onSelectionChange={(keys) => setSelectedKey(keys.values().next().value)}
+                        selectedKeys={status}
+                        onSelectionChange={(keys: Selection) => setStatus(keys.values().next().value)}
                     >
                         <DropdownItem key="Активный">Активный</DropdownItem>
                         <DropdownItem key="Архивный">Архивный</DropdownItem>
@@ -206,8 +217,9 @@ const EditProduct = () => {
                                 <ul>
                                     {
                                         Object.keys(errors).map((key, index) => {
+                                            const errorKey = key as keyof ErrorsType;
                                             return (
-                                                <li key={index}>- {errors[key]}</li>
+                                                <li key={index}>- {errors[errorKey]}</li>
                                             )
                                         })
                                     }

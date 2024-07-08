@@ -10,35 +10,39 @@ import {
     ModalContent, ModalHeader, ModalBody, ModalFooter
 } from "@nextui-org/react";
 import Editor from 'react-simple-wysiwyg';
-import '/node_modules/react-draft-wysiwyg/dist/react-draft-wysiwyg.css';
 import React, {useState} from "react";
-import {Link, redirect} from "react-router-dom";
+import {Link} from "react-router-dom";
 import ImageUploading from 'react-images-uploading';
 import {CameraIcon} from "../components/icons/CameraIcon.tsx";
 import axios from "axios";
 
+interface ErrorsType {
+    name?: string;
+    price?: string;
+    images?: string;
+}
+
 const CreateProduct = () => {
     const [name, setName] = useState('');
-    const [price, setPrice] = useState<number>(0);
+    const [price, setPrice] = useState<string>('0');
     const [html, setHtml] = useState('Описание товара');
     const [images, setImages] = React.useState([]);
     const [selectedKey, setSelectedKey] = useState("Активный");
-    const [errors, setErrors] = useState({});
+    const [errors, setErrors] = useState<ErrorsType>({});
     const [isOpen, setOpen] = useState(false);
 
-
-    const maxNumber = 69;
+    const maxNumber = 70;
 
     const onOpenChange = () => {
         setOpen(!isOpen);
     }
 
-    const onChange = (e) => {
+    const onChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setHtml(e.target.value);
     }
 
     const validateForm = () => {
-        const newErrors = {};
+        const newErrors: ErrorsType = {};
 
         if (!name.trim()) {
             setOpen(true);
@@ -64,7 +68,6 @@ const CreateProduct = () => {
         e.preventDefault();
 
         if (!validateForm()) {
-            console.log('1')
             return;
         }
 
@@ -77,23 +80,15 @@ const CreateProduct = () => {
         images.forEach(image => {
             data.append('images', image.file);
         });
-        for (let [key, value] of data.entries()) {
-            console.log(key, value);
-        }
 
         axios.post('http://localhost:3000/products/create', data).then((res) => {
             if (res.status === 200 || res.status === 201) {
                 window.location.href = '/products';
             }
         });
-
-
     }
 
-
-    const onChangeImage = (imageList: [], addUpdateIndex: number) => {
-        // data for submit
-        console.log(imageList, addUpdateIndex);
+    const onChangeImage = (imageList: []) => {
         setImages(imageList);
     };
 
@@ -193,8 +188,9 @@ const CreateProduct = () => {
                                 <ul>
                                 {
                                     Object.keys(errors).map((key, index) => {
+                                        const errorKey = key as keyof ErrorsType;
                                         return (
-                                            <li key={index}>- {errors[key]}</li>
+                                            <li key={index}>- {errors[errorKey]}</li>
                                         )
                                     })
                                 }

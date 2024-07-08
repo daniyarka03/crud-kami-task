@@ -9,7 +9,6 @@ app.use(cors());
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 
-// Хранилище изображений в памяти
 let images = [];
 let products = [
     {
@@ -36,43 +35,7 @@ let products = [
         status: "Архивный",
         images: [{data_url: "https://cdn.dxomark.com/wp-content/uploads/medias/post-171171/bdc0df40e7c3983b73802b3d47dd20c4600x60085.jpg"}],
     }
-
 ];
-
-app.post('/upload', upload.single('image'), (req, res) => {
-    if (!req.file) {
-        return res.status(400).send('No file uploaded');
-    }
-
-    const image = {
-        id: images.length + 1,
-        filename: req.file.originalname,
-        contentType: req.file.mimetype,
-        data: req.file.buffer.toString('base64')
-    };
-
-    images.push(image);
-    res.status(201).json({ id: image.id });
-});
-
-// Маршрут для получения всех изображений
-app.get('/images', (req, res) => {
-    res.json(images);
-});
-
-// Маршрут для получения изображения по ID
-app.get('/images/:id', (req, res) => {
-    const imageId = parseInt(req.params.id, 10);
-    const image = images.find(img => img.id === imageId);
-
-    if (!image) {
-        return res.status(404).send('Image not found');
-    }
-
-    res.setHeader('Content-Type', image.contentType);
-    res.send(Buffer.from(image.data, 'base64'));
-});
-
 
 // Маршрут для создания продукта
 app.post('/products/create', upload.array('images', 10), (req, res) => {
@@ -112,7 +75,7 @@ app.get('/products/:id', (req, res) => {
     const product = products.find(p => p.id === productId);
 
     if (!product) {
-        return res.status(404).send('Product not found');
+        return res.status(404).send('Продукт не найден');
     }
 
     res.json(product);
@@ -126,17 +89,12 @@ app.put('/products/:id', upload.array('images', 10), (req, res) => {
     const productIndex = products.findIndex(p => p.id === productId);
 
     if (productIndex === -1) {
-        return res.status(404).send('Product not found');
+        return res.status(404).send('Продукт не найден');
     }
 
-    if (!name || !price || !description || !status) {
-        return res.status(400).send('All fields are required');
-    }
-
-    let images = products[productIndex].images; // Сохраняем старые изображения
+    let images = products[productIndex].images;
 
     if (files && files.length > 0) {
-        // Если новые файлы предоставлены, добавляем их к существующим изображениям
         const newImages = files.map(file => ({
             data_url: `data:${file.mimetype};base64,${file.buffer.toString('base64')}`,
             file: {
@@ -159,13 +117,14 @@ app.put('/products/:id', upload.array('images', 10), (req, res) => {
 
     res.json(products[productIndex]);
 });
+
 // Маршрут для удаления продукта по ID
 app.delete('/products/:id', (req, res) => {
     const productId = parseInt(req.params.id, 10);
     const productIndex = products.findIndex(p => p.id === productId);
 
     if (productIndex === -1) {
-        return res.status(404).send('Product not found');
+        return res.status(404).send('Продукт не найден');
     }
 
     products.splice(productIndex, 1);

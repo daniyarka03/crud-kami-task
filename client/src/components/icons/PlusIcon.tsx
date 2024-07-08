@@ -1,13 +1,11 @@
-export const PlusIcon = ({size = 24, width, height, ...props}) => (
+export const PlusIcon = ({size = 24}) => (
     <svg
         aria-hidden="true"
         fill="none"
         focusable="false"
-        height={size || height}
+        height={size}
         role="presentation"
         viewBox="0 0 24 24"
-        width={size || width}
-        {...props}
     >
         <g
             fill="none"
